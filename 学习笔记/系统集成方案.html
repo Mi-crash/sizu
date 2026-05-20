@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四足机器人 · 自主巡航系统架构</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #0f1117; color: #c9d1d9; line-height: 1.7; }
+
+  .header { text-align: center; padding: 48px 20px 32px; border-bottom: 1px solid #21262d; }
+  .header h1 { font-size: 26px; color: #f0f6fc; margin-bottom: 8px; }
+  .header p { color: #8b949e; font-size: 14px; }
+  .header .tagline { margin-top: 14px; font-size: 13px; color: #79c0ff; background: #1a2a3a; display: inline-block; padding: 6px 18px; border-radius: 4px; border: 1px solid #1f3a5f; }
+
+  .container { max-width: 1020px; margin: 0 auto; padding: 36px 20px 80px; }
+
+  .section { margin-bottom: 52px; }
+  .section-title {
+    font-size: 18px; color: #f0f6fc; font-weight: 700; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .num {
+    width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0;
+  }
+  .section-desc { color: #8b949e; font-size: 14px; margin-bottom: 20px; }
+
+  .diagram {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 8px;
+    padding: 20px; font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px; line-height: 1.5; color: #6e7681; overflow-x: auto;
+    white-space: pre; margin-bottom: 20px;
+  }
+  .diagram .sdk { color: #7ee787; }
+  .diagram .hw { color: #79c0ff; }
+  .diagram .official { color: #ffa657; }
+  .diagram .label { color: #8b949e; }
+  .diagram .wait { color: #6e7681; font-style: italic; }
+  .diagram .sep { color: #30363d; }
+
+  .color-legend { display: flex; gap: 20px; margin-bottom: 16px; flex-wrap: wrap; }
+  .color-legend span { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .color-legend .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+  .card {
+    background: #161b22; border: 1px solid #21262d; border-radius: 8px;
+    overflow: hidden; margin-bottom: 14px; transition: border-color 0.2s;
+  }
+  .card:hover { border-color: #383c44; }
+  .card-header {
+    padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; user-select: none;
+  }
+  .card-header .arrow { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #6e7681; transition: transform 0.2s; flex-shrink: 0; }
+  .card.open .arrow { transform: rotate(90deg); }
+  .card-header .badge { font-size: 11px; padding: 2px 8px; border-radius: 3px; font-weight: 600; flex-shrink: 0; }
+  .card-header .card-title { font-size: 14px; color: #f0f6fc; font-weight: 600; }
+  .card-header .card-sub { font-size: 13px; color: #6e7681; margin-left: auto; }
+  .card-body { display: none; padding: 0 18px 18px; }
+  .card.open .card-body { display: block; }
+
+  .card-body h4 { font-size: 12px; color: #6e7681; margin: 14px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .card-body h4:first-child { margin-top: 4px; }
+
+  ul.cl { list-style: none; }
+  ul.cl li { padding: 6px 0; border-bottom: 1px solid #1c2129; font-size: 13.5px; display: flex; gap: 8px; align-items: baseline; }
+  ul.cl li:last-child { border-bottom: none; }
+  ul.cl .b { color: #484f58; flex-shrink: 0; font-size: 11px; }
+  ul.cl strong { color: #f0f6fc; }
+  ul.cl em { color: #6e7681; font-style: normal; font-size: 12.5px; }
+
+  .note-box {
+    background: #0d1117; border-left: 3px solid; border-radius: 0 6px 6px 0;
+    padding: 10px 14px; margin-top: 10px; font-size: 13px; color: #8b949e;
+  }
+  .note-box strong { color: #c9d1d9; }
+
+  .action-box {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 12px 16px; margin-top: 10px;
+  }
+  .action-box .cmd { font-family: "Consolas", monospace; font-size: 12.5px; color: #7ee787; }
+  .action-box .desc { font-size: 12px; color: #6e7681; margin-top: 4px; }
+
+  .ref-box {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 10px 14px; margin-top: 10px;
+  }
+  .ref-box a { color: #58a6ff; text-decoration: none; font-size: 12.5px; display: block; padding: 2px 0; }
+  .ref-box a:hover { text-decoration: underline; }
+
+  .bg-blue { background: #1a2a3a; color: #79c0ff; }
+  .bg-green { background: #1a3a2a; color: #7ee787; }
+  .bg-yellow { background: #3a2a1a; color: #ffa657; }
+  .bg-gray { background: #21262d; color: #8b949e; }
+  .bg-red { background: #3a1a1a; color: #ff7b72; }
+
+  .border-blue { border-left-color: #1f6feb; }
+  .border-green { border-left-color: #238636; }
+  .border-yellow { border-left-color: #d29922; }
+
+  .timeline { position: relative; padding-left: 32px; }
+  .timeline::before { content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 2px; background: #21262d; }
+  .tl-item { position: relative; margin-bottom: 28px; }
+  .tl-item::before {
+    content: ''; position: absolute; left: -27px; top: 6px;
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid #30363d; background: #0d1117;
+  }
+  .tl-item.done::before { border-color: #238636; background: #238636; }
+  .tl-item.active::before { border-color: #ffa657; background: #ffa657; }
+  .tl-item .tl-title { font-size: 14px; color: #f0f6fc; font-weight: 600; }
+  .tl-item .tl-sub { font-size: 12.5px; color: #6e7681; margin-top: 2px; }
+  .tl-item .tl-body { margin-top: 8px; font-size: 13px; color: #8b949e; }
+  .tl-item .tl-body ul { margin-left: 16px; }
+  .tl-item .tl-body li { margin: 3px 0; }
+
+  .work-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  .work-table th { text-align: left; padding: 8px 10px; color: #8b949e; font-weight: 600; border-bottom: 2px solid #21262d; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .work-table td { padding: 8px 10px; border-bottom: 1px solid #1c2129; vertical-align: top; }
+  .work-table tr:hover td { background: #161b22; }
+
+  .footer { text-align: center; padding: 32px; color: #484f58; font-size: 12px; border-top: 1px solid #21262d; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>四足机器人 · 自主巡航系统架构</h1>
+  <p>所有计算在 RK3588 上完成 · 等待官方 SLAM+导航 SDK · 笔记本仅发指令</p>
+  <div class="tagline">核心约束：RK3588 (8GB / 6 TOPS) + 2D 激光雷达建图</div>
+</div>
+
+<div class="container">
+
+<!-- ============================================================ -->
+<!-- Section 1: Architecture Overview -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#1f6feb;color:#fff">1</span>
+    系统全貌：谁在哪干什么
+  </div>
+
+  <div class="color-legend">
+    <span><span class="dot" style="background:#79c0ff"></span> 机器人硬件</span>
+    <span><span class="dot" style="background:#7ee787"></span> SDK 已有</span>
+    <span><span class="dot" style="background:#ffa657"></span> 官方6月底提供</span>
+    <span><span class="dot" style="background:#ff7b72"></span> 你要写的二次开发程序</span>
+  </div>
+
+  <div class="diagram">  <span class="hw">┌──────────────────────────────────────────────────────────────────────────┐</span>
+  <span class="hw">│                      Dobot 四足机器人 (物理实体)                         │</span>
+  <span class="hw">│                                                                          │</span>
+  <span class="hw">│  ┌────────────────────────────────────────────────────────────────────┐  │</span>
+  <span class="hw">│  │                    <span class="hw">RK3588 算力模块 (8GB / 6 TOPS)</span>                  │  │</span>
+  <span class="hw">│  │                                                                    │  │</span>
+  <span class="hw">│  │  <span class="sdk">主控程序（小脑）</span>              <span class="official">SLAM + 导航（6月底）</span>          │  │</span>
+  <span class="hw">│  │  ┌──────────────────────┐     ┌───────────────────────────────┐  │  │</span>
+  <span class="hw">│  │  │ 状态机 (FSM)         │     │ 2D 激光 SLAM                  │  │  │</span>
+  <span class="hw">│  │  │ passive → ready →    │     │ 360° LiDAR 建图               │  │  │</span>
+  <span class="hw">│  │  │ stand → walk → ...   │     │ 多层楼图管理                   │  │  │</span>
+  <span class="hw">│  │  ├──────────────────────┤     ├───────────────────────────────┤  │  │</span>
+  <span class="hw">│  │  │ 步态规划器           │     │ 自主导航                      │  │  │</span>
+  <span class="hw">│  │  │ 哪个脚先抬·抬多高    │     │ 全局路径规划                  │  │  │</span>
+  <span class="hw">│  │  ├──────────────────────┤     │ 局部避障 (D435i 辅助)         │  │  │</span>
+  <span class="hw">│  │  │ 逆运动学求解         │     │ 多目标巡航                    │  │  │</span>
+  <span class="hw">│  │  │ 12个关节目标角度     │     └───────────────────────────────┘  │  │</span>
+  <span class="hw">│  │  ├──────────────────────┤                                        │  │</span>
+  <span class="hw">│  │  │ 高频电机PD控制 ~1kHz │     <span class="sdk">gRPC Server (:50051)</span>              │  │</span>
+  <span class="hw">│  │  │ 关节角度→电流指令    │     接收高层指令，下发给小脑             │  │</span>
+  <span class="hw">│  │  └──────────────────────┤                                        │  │</span>
+  <span class="hw">│  │                         │     <span class="sdk">DDS (CycloneDDS)</span>                  │  │</span>
+  <span class="hw">│  │                         │     发布传感器数据 Topic               │  │</span>
+  <span class="hw">│  └─────────────────────────┴────────────────────────────────────────┘  │</span>
+  <span class="hw">│                              │                    ▲                    │</span>
+  <span class="hw">│              ┌───────────────┼────────────────────┼──────────┐        │</span>
+  <span class="hw">│              │               │  内部总线           │          │        │</span>
+  <span class="hw">│              ▼               ▼                    │          │        │</span>
+  <span class="hw">│  ┌────────────────┐ ┌──────────────┐    ┌──────────────┐ ┌────────┐  │</span>
+  <span class="hw">│  │ 360° 激光雷达   │ │ D435i 深度相机│    │ 12/16 电机   │ │ IMU    │  │</span>
+  <span class="hw">│  │ (SLAM主传感器) │ │ (避障辅助)   │    │ (关节驱动)   │ │ (姿态) │  │</span>
+  <span class="hw">│  └────────────────┘ └──────────────┘    └──────────────┘ └────────┘  │</span>
+  <span class="hw">└──────────────────────────────────────────────────────────────────────────┘</span>
+                        │ DDS (传感器数据)          │ gRPC (指令)
+                        │                          │
+                   ┌────▼──────────────────────────▼────┐
+                   │         网线 / WiFi                 │
+                   └────┬──────────────────────────┬────┘</div>
+
+  <div class="diagram">  <span class="label">  你的 Ubuntu PC — 二次开发程序架构</span>
+
+  <span class="yours">┌────────────────────────────────────────────────────────────────────────────┐</span>
+  <span class="yours">│                        你的二次开发程序 (C++)                               │</span>
+  <span class="yours">│                                                                            │</span>
+  <span class="yours">│  ┌──────────────────────────────────────────────────────────────────────┐  │</span>
+  <span class="yours">│  │  <span class="label">用户界面层</span>                                                          │  │</span>
+  <span class="yours">│  │  ┌────────────────┐  ┌────────────────┐  ┌──────────────────────┐  │  │</span>
+  <span class="yours">│  │  │ 地图可视化      │  │ 任务编辑       │  │ 实时状态监控          │  │  │</span>
+  <span class="yours">│  │  │ 显示栅格地图   │  │ 标注巡航目标点 │  │ 位置·电量·任务进度   │  │  │</span>
+  <span class="yours">│  │  │ 机器人实时位置 │  │ 编辑巡航路线   │  │ 日志·告警·异常       │  │  │</span>
+  <span class="yours">│  │  └────────────────┘  └────────────────┘  └──────────────────────┘  │  │</span>
+  <span class="yours">│  └──────────────────────────────────────────────────────────────────────┘  │</span>
+  <span class="yours">│                                     │                                      │</span>
+  <span class="yours">│  ┌──────────────────────────────────▼──────────────────────────────────┐  │</span>
+  <span class="yours">│  │  <span class="label">业务逻辑层</span>                                                          │  │</span>
+  <span class="yours">│  │                                                                      │  │</span>
+  <span class="yours">│  │  ┌───────────────────┐  ┌───────────────────┐  ┌────────────────┐  │  │</span>
+  <span class="yours">│  │  │ <span class="label">任务调度器</span>        │  │ <span class="label">地图管理器</span>        │  │ <span class="label">异常处理器</span>    │  │  │</span>
+  <span class="yours">│  │  │                   │  │                   │  │                │  │  │</span>
+  <span class="yours">│  │  │ 加载巡航任务列表  │  │ 请求加载/切换地图 │  │ 超时→重发指令  │  │  │</span>
+  <span class="yours">│  │  │ 依次下发目标点   │  │ 多楼层地图切换    │  │ 低电量→返航    │  │  │</span>
+  <span class="yours">│  │  │ 到达→下一个点    │  │ 保存/删除地图     │  │ 卡住→恢复策略  │  │  │</span>
+  <span class="yours">│  │  │ 全部完成→汇报    │  │                   │  │ 断连→等待重连  │  │  │</span>
+  <span class="yours">│  │  └─────────┬─────────┘  └─────────┬─────────┘  └───────┬────────┘  │  │</span>
+  <span class="yours">│  └────────────┼──────────────────────┼────────────────────┼───────────┘  │</span>
+  <span class="yours">│               │                      │                    │              │</span>
+  <span class="yours">│  ┌────────────▼──────────────────────▼────────────────────▼───────────┐  │</span>
+  <span class="yours">│  │  <span class="label">SDK 接口层</span> (链接 Dobot SDK 静态库)                                │  │</span>
+  <span class="yours">│  │                                                                    │  │</span>
+  <span class="yours">│  │  <span class="sdk">robot::Client</span> (gRPC)              <span class="sdk">DDS Subscriber</span> (可选监控)   │  │</span>
+  <span class="yours">│  │  ┌─────────────────────────┐     ┌───────────────────────────┐    │  │</span>
+  <span class="yours">│  │  │ .balance_stand()  站立   │     │ /rgb_image   画面监控     │    │  │</span>
+  <span class="yours">│  │  │ .walk()           行走   │     │ /imu_data    姿态监控     │    │  │</span>
+  <span class="yours">│  │  │ .velocity_seq()   速度   │     │ /motor_state 关节监控     │    │  │</span>
+  <span class="yours">│  │  │ .get_state()      状态   │     │ /bms_state   电量监控     │    │  │</span>
+  <span class="yours">│  │  │ <span class="official">.start_mapping()  建图   │</span>     └───────────────────────────┘    │  │</span>
+  <span class="yours">│  │  │ <span class="official">.navigate_to()    导航   │</span>                                       │  │</span>
+  <span class="yours">│  │  │ <span class="official">.save_map()       存图   │</span>                                       │  │</span>
+  <span class="yours">│  │  └─────────────────────────┘                                       │  │</span>
+  <span class="yours">│  └────────────────────────────────────────────────────────────────────┘  │</span>
+  <span class="yours">│                                                                            │</span>
+  <span class="yours">│  不跑 SLAM · 不跑 Nav2 · 不做实时计算                                      │</span>
+  <span class="yours">│  只发指令 + 收状态 + 可视化                                                 │</span>
+  <span class="yours">└────────────────────────────────────────────────────────────────────────────┘</span></div>
+
+  <div class="note-box border-blue">
+    <strong>你的 PC 程序本质是一个"调度指挥中心"。</strong>重活在 RK3588 上干完了，你的程序只负责：定义巡航任务（去哪些点）→ 下发目标 → 监控进度 → 处理异常。SLAM 和路径规划都是 RK3588 内部的事，你不需要也不应该管。
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 1.5: ROS2 / DDS / gRPC Relationships -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#8957e5;color:#fff">1.5</span>
+    ROS2 · SDK-DDS · SDK-gRPC 三者关系
+  </div>
+
+  <div class="diagram">  <span class="label">  SDK-DDS 和 SDK-gRPC 是两条独立通道（并列，不串联）</span>
+  <span class="label">  ROS2 和它们的关系取决于官方交付形式</span>
+
+  <span class="sep">════════════════════════════════════════════════════════════════════════════════</span>
+
+  <span class="sdk">SDK-DDS (CycloneDDS)</span>          <span class="sdk">SDK-gRPC (Protobuf + TCP)</span>
+  ┌─────────────────────────┐     ┌─────────────────────────┐
+  │ 协议: DDS (UDP 多播)    │     │ 协议: gRPC (HTTP/2 TCP) │
+  │ 方向: 机器人 → 外部     │     │ 方向: 外部 → 机器人     │
+  │ 用途: 传感器数据只读    │     │ 用途: 运动指令控制      │
+  └────────────┬────────────┘     └────────────┬────────────┘
+               │                               │
+               │  <span class="ros2">ROS2 底层通信也是 DDS</span>       │  <span class="label">ROS2 和 gRPC 完全无关</span>
+               │  同一个协议！                   │  两套独立系统，互不认识
+               │                               │
+               ▼                               ▼
+  <span class="ros2">┌──────────────────────────────────────────────────────────────────┐</span>
+  <span class="ros2">│  ROS2 的通信层 (rmw)                                              │</span>
+  <span class="ros2">│                                                                    │</span>
+  <span class="ros2">│  ROS2 不发明新的通信协议，它在 DDS 上面加了一层封装：              │</span>
+  <span class="ros2">│                                                                    │</span>
+  <span class="ros2">│    ROS2 Node ──→ rclcpp ──→ rmw ──→ CycloneDDS ──→ UDP 网络传输    │</span>
+  <span class="ros2">│       ↑                                     ↑                      │</span>
+  <span class="ros2">│       │                              这里和 SDK-DDS                    │</span>
+  <span class="ros2">│       │                              用的是同一个 DDS                  │</span>
+  <span class="ros2">│                                                                    │</span>
+  <span class="ros2">│  所以：如果 ROS2 配置为 CycloneDDS（和你 SDK 一样），                │</span>
+  <span class="ros2">│  ROS2 节点理论上可以直接订阅 SDK 的 DDS Topic，不需要翻译。          │</span>
+  <span class="ros2">│  但消息格式（IDL 自定义类型 vs sensor_msgs）可能对不上。              │</span>
+  <span class="ros2">└──────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="sep">════════════════════════════════════════════════════════════════════════════════</span>
+
+  <span class="label">  关系总结：</span>
+
+  <span class="sdk">SDK-DDS</span> ←─ <span class="label">同协议，天然亲近</span> ─→ <span class="ros2">ROS2</span>
+           ↖                               ↗
+            <span class="label">完全无关，互不认识</span>
+           ↙                               ↘
+  <span class="sdk">SDK-gRPC</span>                              <span class="ros2">ROS2</span></div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-blue">关系</span>
+      <span class="card-title">ROS2 和 SDK-DDS：同协议，但消息格式不同</span>
+    </div>
+    <div class="card-body">
+      <ul class="cl">
+        <li><span class="b">&#9656;</span> <strong>协议层面</strong>：ROS2 底层可以用 CycloneDDS，和 SDK 用的是同一个。UDP 多播发现、Topic 发布订阅机制完全一样</li>
+        <li><span class="b">&#9656;</span> <strong>消息格式</strong>：SDK 的 DDS Topic 用自定义 IDL 定义（越疆私有的图像/IMU 格式），ROS2 用标准 sensor_msgs/Image、sensor_msgs/Imu。格式不同，不能直接互通</li>
+        <li><span class="b">&#9656;</span> <strong>如果要互通</strong>：需要写一个桥接节点，订阅 DDS Topic → 反序列化 → 重新封装为 ROS2 消息发布。这就是之前方案里 Bridge A 做的事</li>
+        <li><span class="b">&#9656;</span> <strong>你现在的方案</strong>：等官方提供 SLAM+导航，如果官方在 RK3588 上直接封装好 gRPC 接口，你 PC 上不需要碰 DDS，也不需要 ROS2</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-blue">关系</span>
+      <span class="card-title">ROS2 和 SDK-gRPC：完全无关</span>
+    </div>
+    <div class="card-body">
+      <ul class="cl">
+        <li><span class="b">&#9656;</span> <strong>gRPC 是独立 RPC 框架</strong>，不走 DDS，和 ROS2 没有任何交集</li>
+        <li><span class="b">&#9656;</span> <strong>ROS2 的 Service/Action</strong> 也能实现请求-响应，但底层走的是 DDS，不是 gRPC</li>
+        <li><span class="b">&#9656;</span> <strong>如果要把 ROS2 的导航指令发给 gRPC</strong>：需要写桥接节点，订阅 ROS2 /cmd_vel → 调用 gRPC velocity_sequence()。这就是之前方案里 Bridge B 做的事</li>
+        <li><span class="b">&#9656;</span> <strong>你现在的方案</strong>：PC 程序直接调 SDK gRPC Client，不经过 ROS2。所以 Bridge B 也不需要</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-yellow">决策</span>
+      <span class="card-title">你现在的方案里，ROS2 在哪？</span>
+    </div>
+    <div class="card-body">
+      <div class="diagram">  <span class="label">  如果官方以 gRPC API 形式交付（最可能）：</span>
+
+  <span class="yours">你的 PC 程序</span> ──<span class="sdk">gRPC</span>──▶ <span class="hw">RK3588 (SLAM+Nav+小脑)</span>
+                 ──<span class="sdk">DDS</span>──▶ <span class="hw">(可选监控传感器)</span>
+
+  <span class="ros2">ROS2</span> = <span class="label">完全不参与。你的程序直接调 SDK，不经过 ROS2。</span>
+
+  <span class="sep">──────────────────────────────────────────────────────────</span>
+
+  <span class="label">  如果官方以 ROS2 包形式交付：</span>
+
+  <span class="yours">你的 PC 程序</span> ──<span class="ros2">ROS2 Topic</span>──▶ <span class="ros2">ROS2 节点</span> ──<span class="sdk">DDS</span>──▶ <span class="hw">RK3588</span>
+                 ──<span class="ros2">ROS2 Service</span>──▶ <span class="ros2">ROS2 节点</span> ──<span class="sdk">gRPC</span>──▶ <span class="hw">RK3588</span>
+
+  <span class="ros2">ROS2</span> = <span class="label">夹在你的程序和 SDK 之间，作为中间层。</span>
+  <span class="label">  你需要：在 PC 上装 ROS2 + 编译官方 ROS2 包 + 启动节点。</span></div>
+
+      <div class="note-box border-yellow">
+        <strong>结论：</strong>在确认官方交付形式之前，你的 PC 程序架构按"直接调 SDK"来设计。如果官方给的是 ROS2 包，加一层 ROS2 适配就行；如果是 gRPC API，现在的架构已经对了。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 1.6: Hex vs Quad Comparison -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#238636;color:#fff">1.6</span>
+    对比：越疆六足 Hexplorer 的做法（已有建图+导航）
+  </div>
+  <div class="section-desc">六足 SDK 来自同一家公司（越疆），已实现建图+导航。它的架构是纯 ROS2，和你的四足完全不同。</div>
+
+  <div class="diagram">  <span class="label">  越疆六足 Hexplorer SDK 架构 —— 纯 ROS2，无 DDS，无 gRPC</span>
+
+  <span class="ros2">机器人本体（多块算力板）</span>
+  <span class="hw">┌──────────────────────────────────────────────────────────────────────────┐</span>
+  <span class="hw">│                                                                          │</span>
+  <span class="hw">│  <span class="label">intel-minipc:</span>                                                       │</span>
+  <span class="hw">│  ┌────────────────────────────────────────────────────────────────────┐  │</span>
+  <span class="hw">│  │  <span class="ros2">主控程序（小脑）—— ROS2 节点</span>                                │  │</span>
+  <span class="hw">│  │                                                                    │  │</span>
+  <span class="hw">│  │  订阅 <span class="ros2">/robot_cmd</span>     (custom_msg/RobotCommand)  ← 状态切换  │  │</span>
+  <span class="hw">│  │  订阅 <span class="ros2">/vel_cmd</span>       (geometry_msgs/Twist)       ← 速度指令  │  │</span>
+  <span class="hw">│  │  发布 <span class="ros2">/robot_state</span>    (custom_msg/RobotState)       → 机器人状态│  │</span>
+  <span class="hw">│  └────────────────────────────────────────────────────────────────────┘  │</span>
+  <span class="hw">│                                                                          │</span>
+  <span class="hw">│  ┌────────────────────────────────────────────────────────────────────┐  │</span>
+  <span class="hw">│  │  <span class="ros2">Livox 激光雷达 ROS2 节点</span>                                     │  │</span>
+  <span class="hw">│  │  发布 /livox_Lidar_node/.../pointcloud  (sensor_msgs/PointCloud2)│  │</span>
+  <span class="hw">│  │  发布 /livox_Lidar_node/.../imu         (sensor_msgs/Imu)       │  │</span>
+  <span class="hw">│  └────────────────────────────────────────────────────────────────────┘  │</span>
+  <span class="hw">│                                                                          │</span>
+  <span class="hw">│  <span class="label">jetson-nano:</span>                                                        │</span>
+  <span class="hw">│  ┌────────────────────────────────────────────────────────────────────┐  │</span>
+  <span class="hw">│  │  <span class="ros2">Realsense D435i ROS2 节点</span>                                    │  │</span>
+  <span class="hw">│  │  发布 /realsense_camera_node/.../depth/u16/image_raw (Image)     │  │</span>
+  <span class="hw">│  │  发布 /realsense_camera_node/.../color/bgr/image_raw  (Image)    │  │</span>
+  <span class="hw">│  │  发布 /realsense_camera_node/.../camera_info          (CameraInfo)│  │</span>
+  <span class="hw">│  └────────────────────────────────────────────────────────────────────┘  │</span>
+  <span class="hw">│                                                                          │</span>
+  <span class="hw">│  所有节点之间 = ROS2 DDS（标准 sensor_msgs + custom_msg）               │</span>
+  <span class="hw">└──────────────────────────────────────────────────────────────────────────┘</span>
+                            │
+                            │ ROS2 DDS（CycloneDDS / FastDDS）
+                            │ 所有数据 + 所有指令 都走同一条通道
+                            ▼
+  <span class="ros2">┌──────────────────────────────────────────────────────────────────────────┐</span>
+  <span class="ros2">│  你的 PC (Ubuntu + ROS2 Humble)                                          │</span>
+  <span class="ros2">│                                                                          │</span>
+  <span class="ros2">│  所有程序都是 ROS2 节点，直接订阅/发布 Topic，不需要任何桥接！            │</span>
+  <span class="ros2">│                                                                          │</span>
+  <span class="ros2">│  ┌──────────────────┐  ┌──────────────────┐  ┌────────────────────────┐│</span>
+  <span class="ros2">│  │ locomotion_node   │  │ SLAM 节点         │  │ Nav2 导航栈            ││</span>
+  <span class="ros2">│  │ 订阅 /robot_state │  │ 订阅 pointcloud   │  │ 订阅地图 + 传感器      ││</span>
+  <span class="ros2">│  │ 发布 /vel_cmd    │  │ 发布 地图          │  │ 发布 /cmd_vel          ││</span>
+  <span class="ros2">│  │ 发布 /robot_cmd  │  │                   │  │       ↓                ││</span>
+  <span class="ros2">│  └──────────────────┘  └──────────────────┘  │ /cmd_vel 格式和          ││</span>
+  <span class="ros2">│                                               │ /vel_cmd 完全一样！       ││</span>
+  <span class="ros2">│                                               │ 无需翻译，直接对接        ││</span>
+  <span class="ros2">│                                               └────────────────────────┘│</span>
+  <span class="ros2">└──────────────────────────────────────────────────────────────────────────┘</span></div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge" style="background:#1a3a2a;color:#7ee787">对比</span>
+      <span class="card-title">四足 vs 六足：架构逐项对比</span>
+    </div>
+    <div class="card-body">
+      <table class="work-table">
+        <thead>
+          <tr><th>维度</th><th style="color:#ff7b72">四足 SDK (Quad)</th><th style="color:#7ee787">六足 SDK (Hex)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>通信层</strong></td>
+            <td>DDS + gRPC 双通道</td>
+            <td>纯 ROS2 Topic（单通道）</td>
+          </tr>
+          <tr>
+            <td><strong>传感器数据</strong></td>
+            <td>DDS (CycloneDDS，私有 IDL 格式)</td>
+            <td>ROS2 Topic (标准 sensor_msgs)</td>
+          </tr>
+          <tr>
+            <td><strong>运动控制</strong></td>
+            <td>gRPC (Protobuf，私有 API)</td>
+            <td>ROS2 Topic /vel_cmd (geometry_msgs/Twist)</td>
+          </tr>
+          <tr>
+            <td><strong>机器人状态</strong></td>
+            <td>gRPC get_state() 请求-响应</td>
+            <td>ROS2 Topic /robot_state 持续订阅</td>
+          </tr>
+          <tr>
+            <td><strong>状态机控制</strong></td>
+            <td>gRPC balance_stand() / walk()</td>
+            <td>ROS2 Topic /robot_cmd (target_state 字段)</td>
+          </tr>
+          <tr>
+            <td><strong>需要桥接？</strong></td>
+            <td>需要（DDS↔ROS2 + ROS2↔gRPC）</td>
+            <td style="color:#7ee787"><strong>不需要</strong>，直接订阅发布</td>
+          </tr>
+          <tr>
+            <td><strong>官方 ROS2 包</strong></td>
+            <td>没有</td>
+            <td style="color:#7ee787"><strong>有</strong>（custom_msg 包 + ros2_env.bash）</td>
+          </tr>
+          <tr>
+            <td><strong>建图+导航</strong></td>
+            <td>还没有（6 月底）</td>
+            <td style="color:#7ee787"><strong>已有</strong>（Nav2 全套已安装）</td>
+          </tr>
+          <tr>
+            <td><strong>Nav2 对接</strong></td>
+            <td>需要翻译（cmd_vel → gRPC）</td>
+            <td style="color:#7ee787"><strong>直接对接</strong>（/cmd_vel 和 /vel_cmd 格式相同）</td>
+          </tr>
+          <tr>
+            <td><strong>算力板</strong></td>
+            <td>单块 RK3588 (8GB / 6 TOPS)</td>
+            <td>双板（intel-minipc + jetson-nano）</td>
+          </tr>
+          <tr>
+            <td><strong>PC 端开发方式</strong></td>
+            <td>调 gRPC Client + DDS Subscriber</td>
+            <td>写 ROS2 节点（rclcpp）</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="note-box" style="border-left-color:#238636">
+    <strong>关键启示：</strong>六足证明了越疆有能力做纯 ROS2 方案。如果四足 6 月底的 SLAM+导航也走这个路线，你的 PC 程序就不再是"调 gRPC Client"，而是"写 ROS2 节点"——和六足的 locomotion.cpp 一模一样的写法。建议带着六足代码去问官方确认。
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 2: Current vs Future -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#238636;color:#fff">2</span>
+    现在有什么 · 6月底会有什么
+  </div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-green">现在可用</span>
+      <span class="card-title">SDK 现有能力</span>
+    </div>
+    <div class="card-body">
+      <ul class="cl">
+        <li><span class="b">&#9656;</span> <strong>gRPC 高层控制</strong> — 状态切换、速度控制、直线行走、旋转、平衡动作、跳舞等</li>
+        <li><span class="b">&#9656;</span> <strong>DDS 底层传感器</strong> — RGB 图像、深度图像、IMU、电机状态、电池状态</li>
+        <li><span class="b">&#9656;</span> <strong>避障</strong> — 内置超声波/深度避障（可通过 gRPC 开关）</li>
+        <li><span class="b">&#9656;</span> <strong>手动控制</strong> — 能让四足站起来、走路、转弯、爬楼梯（运控层面）</li>
+      </ul>
+      <div class="note-box border-green">
+        <strong>现在能做的事：</strong>通过 SDK 例程让四足执行各种动作，验证硬件通信、传感器数据质量、运动控制响应。这是现阶段的工作重点。
+      </div>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-yellow">6月底</span>
+      <span class="card-title">官方计划新增：SLAM + 自主导航</span>
+    </div>
+    <div class="card-body">
+      <ul class="cl">
+        <li><span class="b">&#9656;</span> <strong>2D 激光 SLAM 建图</strong> — 基于 360° LiDAR，构建 2D 栅格地图</li>
+        <li><span class="b">&#9656;</span> <strong>多层楼地图管理</strong> — 跨楼层建图，不同楼层各自保存地图</li>
+        <li><span class="b">&#9656;</span> <strong>自主导航</strong> — 在地图上指定目标点，机器人自主规划路径并巡航</li>
+        <li><span class="b">&#9656;</span> <strong>D435i 辅助避障</strong> — 深度相机提供实时障碍物检测</li>
+      </ul>
+      <div class="note-box border-yellow">
+        <strong>待确认：</strong>以什么形式交付——SDK 新增 gRPC 接口（调 API 就行），还是 ROS2 功能包（需要你配 ROS2 环境）。建议提前问清楚。
+      </div>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-red">还不行</span>
+      <span class="card-title">当前局限</span>
+    </div>
+    <div class="card-body">
+      <ul class="cl">
+        <li><span class="b">&#9656;</span> <strong>没有建图能力</strong> — 无法自主构建环境地图</li>
+        <li><span class="b">&#9656;</span> <strong>没有自主导航</strong> — 只能手控或发预设指令，无法自主巡航</li>
+        <li><span class="b">&#9656;</span> <strong>自动爬楼梯</strong> — 运控层面可以爬，但自主感知和规划还不行</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 3: Communication Architecture -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#1f6feb;color:#fff">3</span>
+    通信架构：DDS 与 gRPC 的分工
+  </div>
+
+  <div class="diagram">  <span class="label">  两条独立通道，并列关系，互不依赖</span>
+
+  <span class="sdk">DDS (CycloneDDS, UDP 多播)</span>               <span class="sdk">gRPC (Protobuf, TCP)</span>
+  ┌────────────────────────────────┐          ┌────────────────────────────────┐
+  │ 方向：机器人 → 外部 (只读)     │          │ 方向：外部 → 机器人 (写入)     │
+  │                                │          │                                │
+  │ 传感器数据持续流出：            │          │ 高层指令偶发发送：              │
+  │  /rgb_image   (30 fps)        │          │  .balance_stand()  站起来      │
+  │  /depth_image (30 fps)        │          │  .walk_forward(2)   走2米      │
+  │  /imu_data    (200 Hz)        │          │  .rotate("left",90) 左转90°    │
+  │  /motor_state (100 Hz)        │          │  .velocity_sequence() 速度控制 │
+  │  /bms_state   (1 Hz)          │          │  .passive()         断电保护   │
+  │                                │          │                                │
+  │ 特点：高频·连续·一对多·可丢帧  │          │ 特点：低频·离散·一对一·需确认  │
+  └────────────────────────────────┘          └────────────────────────────────┘
+
+  <span class="label">  正常模式（自主巡航）：</span>
+  DDS <span class="label">始终只读</span>，gRPC 负责所有控制。两者同时运行，互不干扰。
+
+  <span class="label">  底层调试模式（不建议）：</span>
+  先用 gRPC kill_robot 杀掉小脑，然后通过 DDS 直接写电机。
+  = 你自己得当小脑，自己算每个关节角度。做自主巡航不会用到这个模式。</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 4: Black Box -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#1f6feb;color:#fff">4</span>
+    小脑黑盒：gRPC 指令进来后发生了什么
+  </div>
+
+  <div class="diagram">  <span class="label">你发的指令</span>                              <span class="label">小脑内部（你看不到）</span>
+
+  client.velocity_sequence(0.5, 0, 0, 2)         ┌──────────────────────────┐
+  "以 0.5m/s 前进 2 秒"                        │                          │
+         │                                      │  1. 状态机检查            │
+         │  gRPC                                 │     当前是 walk 状态？    │
+         ▼                                      │     不是 → 先切换         │
+  <span class="sdk">gRPC Server 接收</span>  ─────────────────▶  │                          │
+                                                │  2. 步态规划器            │
+                                                │     左前脚抬 5cm          │
+                                                │     右后脚抬 5cm          │
+                                                │     交替 · 周期 200ms     │
+                                                │                          │
+                                                │  3. 逆运动学             │
+                                                │     左前脚目标 (x,y,z)   │
+                                                │       → 关节1: 0.3 rad   │
+                                                │       → 关节2: 0.8 rad   │
+                                                │       → 关节3: -1.2 rad  │
+                                                │     × 4 条腿 = 12 个角度  │
+                                                │                          │
+                                                │  4. PD 控制 ~1000Hz      │
+                                                │     目标角度 - 实际角度   │
+                                                │       → 误差 → 电流指令   │
+                                                │       → 发给电机驱动器    │
+                                                └──────────────────────────┘
+
+  <span class="label">  总结：你给的是意图（"走0.5m/s"），小脑把它拆成12个关节的毫秒级运动。这个过程对你完全黑盒。</span></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 5: Current Phase Work -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#238636;color:#fff">5</span>
+    现阶段工作：SDK 例程验证
+  </div>
+  <div class="section-desc">在等官方 SLAM+导航 之前，先跑通 SDK 所有 C++ 例程，确保硬件通信和基本控制没问题。</div>
+
+  <div class="timeline">
+    <div class="tl-item active">
+      <div class="tl-title">1. 环境搭建</div>
+      <div class="tl-sub">Ubuntu 22.04 + gRPC 依赖 + DDS 依赖</div>
+      <div class="tl-body">
+        <ul>
+          <li>编译高层 C++ 例程：<code>cd high_level/cpp && mkdir build && cd build && cmake .. && make -j</code></li>
+          <li>编译底层 C++ 例程：<code>cd low_level/cpp && mkdir build && cd build && cmake .. && make -j</code></li>
+          <li>配置 DDS 网络（cyclonedds.xml 网卡名 + CYCLONEDDS_URI）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-title">2. 高层控制验证（gRPC）</div>
+      <div class="tl-sub">WiFi 或有线均可</div>
+      <div class="tl-body">
+        <ul>
+          <li><strong>E1</strong> 查询可用动作 — 验证 gRPC 连通性</li>
+          <li><strong>E2</strong> 查询当前状态 — 确认 FSM 状态机</li>
+          <li><strong>E3</strong> 状态切换 — 实际让机器人站起来、切换模式</li>
+          <li><strong>E4</strong> 速度序列 — 核心验证：前进、后退、转弯</li>
+          <li><strong>E5</strong> 机器人遥测 — 确认关节、姿态数据可读</li>
+          <li><strong>E7</strong> 直线行走 — 验证距离精度</li>
+          <li><strong>E8</strong> 旋转 — 验证角度精度</li>
+          <li><strong>E10</strong> 配置演示 — 速度比、避障开关</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-title">3. 底层传感器验证（DDS，需有线）</div>
+      <div class="tl-sub">确认传感器数据质量</div>
+      <div class="tl-body">
+        <ul>
+          <li><strong>底层 E1</strong> RGB 图像 — 能否稳定获取 30fps</li>
+          <li><strong>底层 E2</strong> 深度图像 — 深度数据是否正常</li>
+          <li><strong>底层 E4</strong> IMU 数据 — 频率、精度</li>
+          <li><strong>底层 E5</strong> 电机状态 — 各关节位置、温度</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-title">4. 记录数据，为后续集成做准备</div>
+      <div class="tl-body">
+        <ul>
+          <li>速度指令和实际运动的对应关系（延迟、精度、惯性）</li>
+          <li>传感器数据质量（丢帧率、噪声水平）</li>
+          <li>续航表现（持续行走多久、建图时能坚持多久）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 6: June Integration -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#ffa657;color:#000">6</span>
+    6 月底：官方 SLAM + 导航集成
+  </div>
+  <div class="section-desc">官方在 RK3588 上提供建图 + 自主导航功能后的集成工作。</div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-yellow">集成</span>
+      <span class="card-title">拿到官方更新后的集成步骤</span>
+    </div>
+    <div class="card-body">
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-title">1. 更新 RK3588 上的 SDK / 固件</div>
+          <div class="tl-body">安装官方提供的 SLAM + 导航模块</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-title">2. 验证建图</div>
+          <div class="tl-body">
+            <ul>
+              <li>遥控四足在目标场地走一圈</li>
+              <li>确认 2D 栅格地图质量（墙壁清晰度、死角覆盖）</li>
+              <li>保存地图</li>
+              <li>多层场景：每层分别建图并保存</li>
+            </ul>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-title">3. 验证自主导航</div>
+          <div class="tl-body">
+            <ul>
+              <li>加载地图，指定目标点，机器人自主导航</li>
+              <li>测试避障：中途放置障碍物，观察是否能绕开</li>
+              <li>测试多层切换：从 1 楼到 2 楼的跨层导航</li>
+              <li>测试连续巡航：多个目标点循环导航</li>
+            </ul>
+          </div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-title">4. 评估是否满足项目需求</div>
+          <div class="tl-body">
+            <ul>
+              <li>满足 → 直接用在项目中</li>
+              <li>不满足 → 评估需要哪些定制，再决定是否引入 ROS2</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 7: Constraints -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#da3633;color:#fff">7</span>
+    硬件约束与边界
+  </div>
+
+  <table class="work-table">
+    <thead>
+      <tr><th>资源</th><th>规格</th><th>意味着什么</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>RK3588 CPU</strong></td>
+        <td>8 核 ARM (4×A76 + 4×A55)</td>
+        <td>跑 Linux + SLAM + Nav2 够用，但不能上重算法</td>
+      </tr>
+      <tr>
+        <td><strong>内存</strong></td>
+        <td>8 GB</td>
+        <td>2D 激光 SLAM 足够，3D 点云建图会比较紧张</td>
+      </tr>
+      <tr>
+        <td><strong>NPU 算力</strong></td>
+        <td>6 TOPS</td>
+        <td>可跑轻量 AI 推理（目标检测等），不够跑大模型</td>
+      </tr>
+      <tr>
+        <td><strong>主传感器</strong></td>
+        <td>360° 激光雷达</td>
+        <td>适合 2D 栅格建图，不支持 3D 环境重建</td>
+      </tr>
+      <tr>
+        <td><strong>辅助传感器</strong></td>
+        <td>D435i 深度相机</td>
+        <td>RGB-D 图像，用于局部避障和短距离感知</td>
+      </tr>
+      <tr>
+        <td><strong>网络</strong></td>
+        <td>有线 192.168.5.2 + WiFi</td>
+        <td>DDS 必须有线；gRPC 走 WiFi 也行</td>
+      </tr>
+      <tr>
+        <td><strong>可选扩展</strong></td>
+        <td>额外算力背包</td>
+        <td>如果 8GB 不够，可外接算力模块</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 8: Risk -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#da3633;color:#fff">8</span>
+    风险与待确认事项
+  </div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-yellow">待确认</span>
+      <span class="card-title">需要问清楚官方的问题</span>
+    </div>
+    <div class="card-body">
+      <ul class="cl">
+        <li><span class="b">1.</span> <strong>交付形式</strong> — SDK 新增 gRPC 接口（调 API），还是 ROS2 功能包（需要配 ROS2 环境）？</li>
+        <li><span class="b">2.</span> <strong>建图精度</strong> — 激光雷达的实际建图质量如何？能否应对玻璃门、长走廊等退化场景？</li>
+        <li><span class="b">3.</span> <strong>开放程度</strong> — 是黑盒 API（只能调 navigate_to），还是能拿到地图数据、自定义规划策略？</li>
+        <li><span class="b">4.</span> <strong>多层管理</strong> — 多楼层地图如何切换？机器人怎么知道自己换了楼层？</li>
+        <li><span class="b">5.</span> <strong>时间表</strong> — 6 月底是确定日期还是估计？会不会延期？</li>
+        <li><span class="b">6.</span> <strong>算力占用</strong> — SLAM + 导航跑起来后，占多少内存/CPU？是否影响小脑的实时性？</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-red">风险</span>
+      <span class="card-title">可能卡住的地方</span>
+    </div>
+    <div class="card-body">
+      <ul class="cl">
+        <li><span class="b">&#9656;</span> <strong>官方延期</strong> — 6 月底可能不是确定日期。提前准备：如果延期，是否需要临时方案？</li>
+        <li><span class="b">&#9656;</span> <strong>功能不满足需求</strong> — 官方导航可能只有基础功能（单目标导航），不包含多目标巡航、自动充电回桩等。评估差距</li>
+        <li><span class="b">&#9656;</span> <strong>8GB 内存瓶颈</strong> — SLAM + 导航 + 小脑同时运行，如果内存吃紧可能导致卡顿或崩溃</li>
+        <li><span class="b">&#9656;</span> <strong>2D 激光局限</strong> — 纯 2D 建图对透明障碍物（玻璃门）、低矮障碍物（台阶边缘）可能检测不到</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Section 9: Reference Projects -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-title">
+    <span class="num" style="background:#8957e5;color:#fff">9</span>
+    参考项目：同行的做法
+  </div>
+  <div class="section-desc">其他四足机器人（宇树 GO2）的自主导航开源方案。架构相似但更成熟，可作为参考。</div>
+
+  <div class="card" onclick="toggle(this)">
+    <div class="card-header">
+      <span class="arrow">&#9654;</span>
+      <span class="badge bg-blue">参考</span>
+      <span class="card-title">宇树 GO2 自主导航开源项目</span>
+    </div>
+    <div class="card-body">
+      <ul class="cl">
+        <li><span class="b">&#9656;</span> <strong>宇树的优势</strong> — GO2 底层 DDS 天然兼容 ROS2（同协议），不需要写桥接层；越疆多了 gRPC，需要额外翻译</li>
+        <li><span class="b">&#9656;</span> <strong>go2_ros2_sdk</strong> — 非官方 ROS2 SDK，已集成 SLAM + Nav2 自主导航，AIR/PRO/EDU 全支持</li>
+        <li><span class="b">&#9656;</span> <strong>autonomy_stack_go2</strong> — CMU 出品，最完整的 GO2 自主导航栈</li>
+        <li><span class="b">&#9656;</span> <strong>amigo_ros2</strong> — 工业巡检场景，建图→记录点位→自主巡航，和你的需求最接近</li>
+      </ul>
+      <div class="note-box border-blue">
+        <strong>对你有什么用：</strong>如果官方方案不满足需求、需要自己做 ROS2 集成，这些项目展示了完整的实现路径。架构思路可以直接借鉴，只是你的越疆多了 DDS→ROS2 和 ROS2→gRPC 两座桥。
+      </div>
+      <div class="ref-box">
+        <a href="https://github.com/abizovnuralem/go2_ros2_sdk" target="_blank">go2_ros2_sdk — 非官方 GO2 ROS2 SDK</a>
+        <a href="https://github.com/jizhang-cmu/autonomy_stack_go2" target="_blank">autonomy_stack_go2 — CMU 完整自主导航栈</a>
+        <a href="https://github.com/eppl-erau-db/amigo_ros2" target="_blank">amigo_ros2 — 工业巡检自主巡航</a>
+        <a href="https://github.com/unitreerobotics/unitree_ros2" target="_blank">unitree_ros2 — 宇树官方 ROS2 包</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  所有计算在 RK3588 · 等官方 SLAM+导航 · 现阶段验证 SDK 基础能力 · 参考宇树 GO2 生态
+</div>
+
+<script>
+function toggle(el) { el.classList.toggle('open'); }
+</script>
+</body>
+</html>

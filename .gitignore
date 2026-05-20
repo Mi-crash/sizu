@@ -1,0 +1,40 @@
+# 编辑器/系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# 大型二进制文件
+*.deb
+*.whl
+*.pdf
+*.mp3
+*.flac
+*.wav
+*.png
+*.gif
+*.jpg
+*.jpeg
+*.xlsx
+*.STL
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Claude
+.claude/
+
+# 临时文件
+*.tmp
+*.log

@@ -1,0 +1,129 @@
+{
+  "features": [
+    {
+      "id": "F001",
+      "name": "开发环境搭建",
+      "status": "in_progress",
+      "priority": "high",
+      "description": "安装 Ubuntu 22.04，配置 Python 3.10+，Docker 镜像构建，CycloneDDS 环境配置，gRPC 依赖安装",
+      "passes": [
+        "SDK 高层示例可运行：状态切换→站立→行走→趴下",
+        "SDK 底层示例可运行：订阅 IMU、电机状态、RGB-D 图像"
+      ]
+    },
+    {
+      "id": "F002",
+      "name": "机器人通信验证",
+      "status": "pending",
+      "priority": "high",
+      "description": "有线 DDS 链路和 WiFi gRPC 链路验证，机器人基本运动控制和传感器数据采集",
+      "passes": [
+        "有线连接：PC ↔ 机器人 (192.168.5.0/24) DDS 链路通",
+        "WiFi 连接：PC ↔ 机器人 (192.168.1.6:50051) gRPC 链路通",
+        "高层控制：状态切换、站立、行走、转弯、趴下均正常",
+        "底层数据：IMU、12 电机状态、RGB-D 图像均可正常订阅"
+      ]
+    },
+    {
+      "id": "F003",
+      "name": "场地勘察与选定",
+      "status": "pending",
+      "priority": "high",
+      "description": "公园/街道/广场候选场地实地勘察，评估地形、WiFi、安全性，确定 Demo 场地",
+      "passes": [
+        "候选场地评估表完成",
+        "Demo 场地选定并拍照记录"
+      ]
+    },
+    {
+      "id": "F004",
+      "name": "ROS2 框架集成",
+      "status": "pending",
+      "priority": "high",
+      "description": "安装 ROS2 Humble，编写 DDS→ROS2 桥接节点和 ROS2→gRPC 桥接节点",
+      "passes": [
+        "ROS2 工作空间创建完成",
+        "/camera/image_raw, /camera/depth, /imu topic 有数据",
+        "/cmd_vel 可控制机器人移动"
+      ]
+    },
+    {
+      "id": "F005",
+      "name": "SLAM 建图",
+      "status": "pending",
+      "priority": "high",
+      "description": "选型视觉 SLAM 方案，RGB-D 相机标定，遥控建图，地图优化与验证",
+      "passes": [
+        "SLAM 算法就绪（RTAB-Map 或 ORB-SLAM3）",
+        "相机标定文件生成",
+        "原始点云地图生成",
+        "2D 栅格地图 (map.yaml + pgm) 输出",
+        "地图覆盖全部巡检区域，无明显定位盲区"
+      ]
+    },
+    {
+      "id": "F006",
+      "name": "自主导航",
+      "status": "pending",
+      "priority": "high",
+      "description": "部署 Nav2 导航栈，配置代价地图和路径规划器，集成避障，单点导航测试",
+      "passes": [
+        "Nav2 框架加载地图和定位模块正常",
+        "代价地图参数适配四足机器人尺寸",
+        "全局规划 + 局部规划可用",
+        "避障双重保障验证通过",
+        "单航点导航测试通过"
+      ]
+    },
+    {
+      "id": "F007",
+      "name": "巡检路线系统",
+      "status": "pending",
+      "priority": "high",
+      "description": "路线录制、路线回放、巡检任务管理、多路线管理",
+      "passes": [
+        "遥控录制路线功能正常",
+        "按录制航点依次导航回放正常",
+        "巡检启动/暂停/停止/异常重试逻辑正确",
+        "多路线保存/加载/编辑功能可用"
+      ]
+    },
+    {
+      "id": "F008",
+      "name": "安全机制",
+      "status": "pending",
+      "priority": "high",
+      "description": "低电量自动返航、定位丢失处理、紧急停止响应",
+      "passes": [
+        "电量 < 20% 时自动中止巡检并返航",
+        "连续 N 秒无法定位时停车报警",
+        "急停链路：Nav2 → gRPC ready 状态切换正常"
+      ]
+    },
+    {
+      "id": "F009",
+      "name": "循环测试与验收",
+      "status": "pending",
+      "priority": "high",
+      "description": "≥3 次完整巡检循环测试，零人工干预，输出测试报告和部署文档",
+      "passes": [
+        "第 1 次完整巡检循环完成，记录数据",
+        "第 2 次完整巡检循环完成，验证调优",
+        "第 3 次完整巡检循环完成，零人工干预",
+        "地图交付包 + 测试报告 + 部署操作手册输出"
+      ]
+    },
+    {
+      "id": "F010",
+      "name": "AI 异常识别",
+      "status": "pending",
+      "priority": "medium",
+      "description": "环卫场景异常检测（垃圾识别等），异常上报管理平台",
+      "passes": [
+        "垃圾/异常目标检测模型部署",
+        "检测结果实时上报功能",
+        "管理平台接收展示"
+      ]
+    }
+  ]
+}

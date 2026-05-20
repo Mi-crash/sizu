@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四足机器人 · 自主巡航知识体系</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #0f1117; color: #c9d1d9; line-height: 1.7; }
+
+  /* Header */
+  .header { text-align: center; padding: 48px 20px 32px; border-bottom: 1px solid #21262d; }
+  .header h1 { font-size: 28px; color: #f0f6fc; margin-bottom: 8px; }
+  .header p { color: #8b949e; font-size: 15px; }
+  .header .arch-hint { margin-top: 16px; font-size: 13px; color: #6e7681; background: #161b22; display: inline-block; padding: 6px 16px; border-radius: 4px; }
+
+  /* Legend */
+  .legend { display: flex; gap: 24px; justify-content: center; padding: 20px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #8b949e; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* Layer Container */
+  .layers { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  .layer-group { margin-bottom: 48px; }
+  .layer-label { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #6e7681; margin-bottom: 16px; padding-left: 4px; display: flex; align-items: center; gap: 8px; }
+  .layer-label .line { flex: 1; height: 1px; background: #21262d; }
+
+  /* Module Card */
+  .module {
+    background: #161b22; border: 1px solid #21262d; border-radius: 8px; margin-bottom: 12px;
+    overflow: hidden; transition: border-color 0.2s;
+  }
+  .module:hover { border-color: #383c44; }
+  .module-header {
+    padding: 16px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+    user-select: none;
+  }
+  .module-header .arrow {
+    width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: #6e7681; transition: transform 0.2s; flex-shrink: 0;
+  }
+  .module.open .arrow { transform: rotate(90deg); }
+  .module-header .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 3px; font-weight: 600; flex-shrink: 0;
+  }
+  .module-header .title { font-size: 15px; color: #f0f6fc; font-weight: 600; }
+  .module-header .subtitle { font-size: 13px; color: #8b949e; margin-left: auto; flex-shrink: 0; }
+
+  .module-body { display: none; padding: 0 20px 20px; }
+  .module.open .module-body { display: block; }
+
+  .module-body h4 { font-size: 13px; color: #8b949e; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .module-body h4:first-child { margin-top: 4px; }
+
+  .concept-list { list-style: none; }
+  .concept-list li {
+    padding: 8px 0; border-bottom: 1px solid #1c2129; font-size: 14px;
+    display: flex; gap: 10px; align-items: baseline;
+  }
+  .concept-list li:last-child { border-bottom: none; }
+  .concept-list .bullet { color: #6e7681; flex-shrink: 0; font-size: 12px; }
+  .concept-list strong { color: #f0f6fc; }
+  .concept-list em { color: #8b949e; font-style: normal; font-size: 13px; }
+
+  .resource-box {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 12px 16px; margin-top: 12px;
+  }
+  .resource-box a { color: #58a6ff; text-decoration: none; font-size: 13px; display: block; padding: 2px 0; }
+  .resource-box a:hover { text-decoration: underline; }
+
+  .why-box {
+    background: #0d1117; border-left: 3px solid; border-radius: 0 6px 6px 0;
+    padding: 12px 16px; margin-top: 12px; font-size: 13px; color: #8b949e;
+  }
+  .why-box strong { color: #c9d1d9; }
+
+  /* Relation diagram */
+  .relation {
+    background: #0d1117; border: 1px solid #21262d; border-radius: 6px;
+    padding: 16px; margin-top: 12px; font-family: "Consolas", "Courier New", monospace;
+    font-size: 12px; line-height: 1.6; color: #6e7681; white-space: pre; overflow-x: auto;
+  }
+
+  /* Colors */
+  .bg-transport  { background: #1f3a5f; color: #79b8ff; }
+  .bg-middleware  { background: #1a3a2a; color: #7ee787; }
+  .bg-ros2       { background: #2a1a3a; color: #d2a8ff; }
+  .bg-perception { background: #3a2a1a; color: #ffa657; }
+  .bg-planning   { background: #3a1a1a; color: #ff7b72; }
+  .bg-control    { background: #1a2a3a; color: #79c0ff; }
+
+  .border-transport { border-left-color: #1f6feb; }
+  .border-middleware { border-left-color: #238636; }
+  .border-ros2      { border-left-color: #8957e5; }
+  .border-perception{ border-left-color: #d29922; }
+  .border-planning  { border-left-color: #da3633; }
+  .border-control   { border-left-color: #1f6feb; }
+
+  /* Footer */
+  .footer { text-align: center; padding: 32px; color: #484f58; font-size: 12px; border-top: 1px solid #21262d; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>四足机器人 · 自主巡航知识体系</h1>
+  <p>从通信基础到自主巡航，分层理解每一块为什么存在</p>
+  <div class="arch-hint">阅读方式：自底向上，先理解每一层解决什么问题，再理解上层如何依赖它</div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#1f6feb"></div> 传输层</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#238636"></div> 中间件层</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8957e5"></div> 框架层</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div> 感知建图层</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#da3633"></div> 规划决策层</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#79c0ff"></div> 运动控制层</div>
+</div>
+
+<div class="layers">
+
+<!-- ==================== Layer 1: Transport ==================== -->
+<div class="layer-group">
+  <div class="layer-label">第一层 · 传输基础 <span class="line"></span></div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-transport">传输层</span>
+      <span class="title">Linux 系统编程与网络基础</span>
+      <span class="subtitle">所有上层通信的根基</span>
+    </div>
+    <div class="module-body">
+      <h4>要理解什么</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>进程间通信（IPC）</strong> — 管道、共享内存、信号、消息队列 <em>→ 为什么机器人软件不直接用这些？</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Socket 编程</strong> — TCP 可靠传输 vs UDP 低延迟 <em>→ DDS 底层用 UDP 多播，gRPC 底层用 TCP</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>多播（Multicast）</strong> — UDP 多播是一对多高效分发的基础 <em>→ DDS 的发现协议和 Topics 依赖它</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>序列化</strong> — 把内存中的结构体变成字节流传输 <em>→ Protobuf / CDR 是两种不同的序列化方案</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>CMake 构建体系</strong> — 管理多文件、多依赖的 C++ 编译 <em>→ SDK 和 ROS2 包都用 CMake</em></li>
+      </ul>
+      <div class="why-box border-transport">
+        <strong>这一层解决什么问题：</strong>DDS 和 gRPC 不凭空出现，它们分别基于 UDP 多播和 TCP Socket。不理解 Socket 和序列化，就无法理解 DDS 的 QoS 和 gRPC 的 Stub 是怎么工作的。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Layer 2: Middleware ==================== -->
+<div class="layer-group">
+  <div class="layer-label">第二层 · 中间件 <span class="line"></span></div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-middleware">中间件</span>
+      <span class="title">DDS — 数据分发服务</span>
+      <span class="subtitle">SDK 底层 · 传感器数据流</span>
+    </div>
+    <div class="module-body">
+      <h4>核心概念</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>发布-订阅模型（Pub-Sub）</strong> — 数据生产者和消费者解耦，谁也不需要知道对方的存在 <em>→ 和请求-响应模式的本质区别</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Topic</strong> — 数据通道，按主题名订阅，类似"频道" <em>→ RGB图像、IMU、电机状态各自是不同 Topic</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Domain & DomainParticipant</strong> — DDS 的隔离域，同一 Domain 下的节点才能互相通信</li>
+        <li><span class="bullet">&#9656;</span> <strong>QoS（Quality of Service）</strong> — 可靠性、历史深度、传输策略等 <em>→ 传感器数据要"最新帧"还是"不丢帧"？QoS 决定</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>IDL（接口定义语言）</strong> — 定义数据结构 <em>→ SDK 中 RGB图像、IMU数据的消息格式就是这样定义的</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>自动发现（Discovery）</strong> — 节点上线自动互相发现，无需中心注册 <em>→ 这就是为什么 DDS 是去中心化的</em></li>
+      </ul>
+      <h4>关键实现</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>Cyclone DDS</strong> — Eclipse 基金会开源，轻量级 <em>→ 你的 Dobot SDK 用的就是这个</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Fast DDS（eProsima）</strong> — ROS2 Humble 默认实现，性能更优</li>
+        <li><span class="bullet">&#9656;</span> <strong>两者关系</strong> — 都遵循 OMG DDS 规范，API 行为一致，底层实现和调优策略不同</li>
+      </ul>
+      <div class="why-box border-middleware">
+        <strong>这一层解决什么问题：</strong>传感器每秒产生大量数据（图像 30fps、IMU 200Hz），需要一种"发完就忘"的机制让多个消费者同时拿到数据。DDS 的 Pub-Sub + QoS 就是为此设计。
+      </div>
+      <div class="resource-box">
+        <a href="https://github.com/eclipse-cyclonedds/cyclonedds" target="_blank">Cyclone DDS 源码 &amp; Examples</a>
+        <a href="https://www.stereolabs.com/docs/ros2/dds-and-network-tuning" target="_blank">Stereolabs — DDS 调优实战（Fast DDS vs Cyclone DDS）</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-middleware">中间件</span>
+      <span class="title">gRPC — 远程过程调用</span>
+      <span class="subtitle">SDK 高层 · 指令控制</span>
+    </div>
+    <div class="module-body">
+      <h4>核心概念</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>请求-响应模型（Request-Response）</strong> — 客户端发请求，服务端返回结果 <em>→ 和 Pub-Sub 的"发完就忘"完全不同</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Protobuf（Protocol Buffers）</strong> — Google 的序列化协议，定义 .proto 文件自动生成代码 <em>→ 比 JSON 更小更快，但不可读</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Stub（桩代码）</strong> — 自动生成的客户端代理，调方法像调本地函数 <em>→ SDK 中 RobotClient 就是 gRPC Stub 的封装</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>四种通信模式</strong> — 一元 RPC、服务端流、客户端流、双向流 <em>→ SDK 高层控制主要用一元 RPC</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>HTTP/2 底层</strong> — 多路复用、头部压缩、双向流 <em>→ gRPC 高性能的来源</em></li>
+      </ul>
+      <div class="why-box border-middleware">
+        <strong>这一层解决什么问题：</strong>"让机器人站起来""走直线""切换状态"这类指令是偶发的、需要确认结果的。gRPC 的请求-响应模式天然适合：发了指令，等机器人确认执行完。
+      </div>
+      <div class="resource-box">
+        <a href="https://github.com/grpc/grpc/tree/master/examples" target="_blank">gRPC 官方 Examples（Python / C++）</a>
+        <a href="https://grpc.io/docs/languages/python/basics/" target="_blank">gRPC Python 基础教程</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-middleware">对比</span>
+      <span class="title">DDS vs gRPC — 为什么 SDK 需要两个？</span>
+      <span class="subtitle">理解选型背后的权衡</span>
+    </div>
+    <div class="module-body">
+      <div class="relation">  场景对比：
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    传感器数据流 (DDS)                         │
+  │  相机 ──publish──▶ Topic: /rgb_image                        │
+  │  相机 ──publish──▶ Topic: /depth_image                      │
+  │  IMU  ──publish──▶ Topic: /imu_data                         │
+  │                                                              │
+  │  特点：高频、连续、多个消费者、不关心谁在听              │
+  │  策略：发最新的就好，丢帧可以接受（QoS: best-effort）       │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────────────────────────┐
+  │                    指令控制 (gRPC)                            │
+  │  Client ──request──▶ "切换到 STAND 状态" ──response──▶ OK    │
+  │  Client ──request──▶ "以 0.5m/s 前进"     ──response──▶ OK  │
+  │                                                              │
+  │  特点：低频、离散、需要确认结果、一对一                       │
+  │  策略：必须确认执行成功（可靠性优先）                         │
+  └──────────────────────────────────────────────────────────────┘</div>
+      <div class="why-box border-middleware">
+        <strong>选型本质：</strong>DDS 擅长"数据洪流"（一对多、高频率、可丢帧），gRPC 擅长"精准指令"（一对一、需要确认、低频率）。机器人系统同时需要这两种通信模式，所以 SDK 分了两层。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Layer 3: ROS2 Framework ==================== -->
+<div class="layer-group">
+  <div class="layer-label">第三层 · ROS2 框架 <span class="line"></span></div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-ros2">框架层</span>
+      <span class="title">ROS2 架构本质 — DDS 的上层封装</span>
+      <span class="subtitle">理解 ROS2 不神秘</span>
+    </div>
+    <div class="module-body">
+      <h4>核心映射：ROS2 概念 → DDS 底层</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>Node（节点）</strong> → 一个 DomainParticipant，即一个独立的计算单元 <em>→ 一个进程可以包含多个节点</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Topic（话题）</strong> → DDS Topic + Publisher/Subscriber <em>→ 和 SDK 底层的 Topic 是同一回事</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Service（服务）</strong> → DDS 上的请求-响应封装 <em>→ 类似 gRPC，但走 DDS 通道</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Action（动作）</strong> → 长时间任务：带反馈的请求-响应 <em>→ "导航到某点"就是 Action</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Parameter（参数）</strong> → 节点运行时可调的配置项 <em>→ 调参不用改代码</em></li>
+      </ul>
+      <h4>关键设计</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>rmw（ROS Middleware）抽象层</strong> — ROS2 不绑定特定 DDS 实现 <em>→ Cyclone DDS / Fast DDS / Connext 可插拔切换</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Lifecycle Node（生命周期节点）</strong> — 节点有状态机：Unconfigured → Inactive → Active <em>→ Nav2 大量使用，启动顺序可控</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Launch 系统</strong> — 声明式启动多节点、配置参数 <em>→ 替代一堆 shell 脚本</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>TF（坐标变换）</strong> — 维护坐标系树，任何时刻可查询任意两坐标系间的变换 <em>→ 相机→机器人→世界，自动串联</em></li>
+      </ul>
+      <div class="why-box border-ros2">
+        <strong>这一层解决什么问题：</strong>裸 DDS 需要手动管理 Participant、Topic、QoS，很繁琐。ROS2 提供标准化的节点抽象、消息定义、工具链，让你专注于算法而不是通信细节。它不是魔法，就是 DDS 上面的一层工程封装。
+      </div>
+      <div class="resource-box">
+        <a href="https://design.ros2.org/" target="_blank">ROS2 Design — 架构设计决策文档（为什么这样设计）</a>
+        <a href="https://docs.ros.org/en/humble/index.html" target="_blank">ROS2 Humble 官方文档</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-ros2">框架层</span>
+      <span class="title">仿真环境 — Gazebo</span>
+      <span class="subtitle">没有实体机器人也能开发</span>
+    </div>
+    <div class="module-body">
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>物理引擎</strong> — 模拟重力、碰撞、摩擦力，让虚拟机器人行为接近真实</li>
+        <li><span class="bullet">&#9656;</span> <strong>传感器仿真</strong> — 生成虚拟的 RGB/深度图像、激光雷达、IMU 数据 <em>→ 数据格式和真实传感器一致</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>URDF/SDF 模型</strong> — 用 XML 描述机器人的连杆、关节、传感器安装位置 <em>→ SDK resources/ 下有现成的 URDF</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>ROS2 集成</strong> — Gazebo 里的虚拟传感器直接发布 ROS2 Topic <em>→ 代码不用改，仿真和真机切换</em></li>
+      </ul>
+      <div class="why-box border-ros2">
+        <strong>为什么重要：</strong>在真机上调试 SLAM 和导航很慢且有风险。Gazebo 让你在仿真里验证算法，通过后再部署到四足上。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Layer 4: Perception & SLAM ==================== -->
+<div class="layer-group">
+  <div class="layer-label">第四层 · 感知与建图 <span class="line"></span></div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-perception">感知层</span>
+      <span class="title">传感器融合 — 多源数据怎么合到一起</span>
+      <span class="subtitle">建图的原料准备</span>
+    </div>
+    <div class="module-body">
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>相机内参标定</strong> — 焦距、畸变系数，把像素坐标映射到真实角度 <em>→ 深度图转换点云的基础</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>RGB-D 对齐</strong> — 深度图和彩色图对齐，知道每个像素的距离 <em>→ SDK e1 + e2 两个 Topic 需要融合</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>IMU 预积分</strong> — 加速度计 + 陀螺仪，提供两帧图像之间的运动约束 <em>→ 视觉的补充：快速运动时视觉会跟丢</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>轮式里程计</strong>（轮足构型）— 电机编码器推算位移 <em>→ SDK e5 电机状态可算里程计</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>时间同步</strong> — 不同传感器频率不同，需要按时间戳对齐 <em>→ ROS2 message_filters 做近似/精确同步</em></li>
+      </ul>
+      <div class="why-box border-perception">
+        <strong>这一层解决什么问题：</strong>单一传感器不够用——相机会被遮挡、IMU 会漂移、轮子会打滑。融合多个传感器取长补短，才能得到可靠的位姿估计。
+      </div>
+    </div>
+  </div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-perception">建图层</span>
+      <span class="title">SLAM — 同时定位与建图</span>
+      <span class="subtitle">"我在哪" + "周围长什么样"</span>
+    </div>
+    <div class="module-body">
+      <h4>SLAM 在解什么数学问题</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>状态估计</strong> — 同时估计机器人位姿（在哪里、朝向哪）和地图（环境结构）</li>
+        <li><span class="bullet">&#9656;</span> <strong>前端（数据关联）</strong> — 提取特征、匹配相邻帧，建立"我移动了多少"的初步估计 <em>→ 视觉特征点 ORB/SIFT，或激光扫描匹配</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>后端（优化）</strong> — 把所有观测约束放到一起，解一个全局优化问题 <em>→ 图优化（g2o/Ceres）或滤波（EKF）</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>回环检测</strong> — "这个地方我来过"，修正累积漂移 <em>→ 这是 SLAM 和纯里程计的核心区别</em></li>
+      </ul>
+      <h4>主流方案</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>ORB-SLAM3</strong> — 视觉 + IMU，学术标杆，代码质量高适合学习原理</li>
+        <li><span class="bullet">&#9656;</span> <strong>RTAB-Map</strong> — RGB-D SLAM，ROS2 集成好，适合直接用 <em>→ 有 RGB-D 相机的首选</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Cartographer</strong> — Google 出品，激光 SLAM，2D/3D 均可 <em>→ 如果加激光雷达可以考虑</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>FAST-LIO2</strong> — 激光 + IMU 紧耦合，性能强悍 <em>→ 近年来学术界和工业界都很流行</em></li>
+      </ul>
+      <h4>输出：地图</h4>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>2D 栅格地图（Occupancy Grid）</strong> — 每个格子标记"空闲/占据/未知" <em>→ 导航规划最常用的格式</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>3D 点云地图</strong> — 稠密的三维环境重建 <em>→ 避障更精细但计算量大</em></li>
+      </ul>
+      <div class="why-box border-perception">
+        <strong>这一层解决什么问题：</strong>巡航的前提是"有地图"和"知道自己在地图上的位置"。SLAM 解决的就是这两个问题——边走边建图，建完图后还能在这个图上定位。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Layer 5: Planning ==================== -->
+<div class="layer-group">
+  <div class="layer-label">第五层 · 规划决策 <span class="line"></span></div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-planning">规划层</span>
+      <span class="title">Nav2 导航栈 — 从地图到路径</span>
+      <span class="subtitle">ROS2 自主导航的标准框架</span>
+    </div>
+    <div class="module-body">
+      <h4>导航流水线</h4>
+      <div class="relation">  ┌─────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+  │  目标点  │───▶│ 全局规划 │───▶│ 局部规划 │───▶│ 速度指令 │
+  │(用户指定)│    │(A*/Dijkstra)│   │(DWA/TEB) │    │(cmd_vel) │
+  └─────────┘    └──────────┘    └──────────┘    └──────────┘
+                       ▲               ▲
+                       │               │
+                  ┌─────────┐    ┌─────────┐
+                  │ 栅格地图 │    │ 传感器  │
+                  │(SLAM输出)│    │(实时避障)│
+                  └─────────┘    └─────────┘</div>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>全局路径规划（Planner）</strong> — 在地图上找一条从 A 到 B 的无碰撞路径 <em>→ A* 最经典，Nav2 支持多种插件替换</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>局部路径规划（Controller）</strong> — 实时跟踪全局路径，同时躲避地图上没有的动态障碍 <em>→ DWA 在速度空间搜索，TEB 做时间最优</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>代价地图（Costmap）</strong> — 地图 + 实时传感器数据融合，标记"通行代价" <em>→ 障碍物附近代价值高，机器人自然远离</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>行为树（Behavior Tree）</strong> — 编排复杂导航行为：导航 → 卡住了？→ 旋转清障 → 重试 <em>→ Nav2 用 BT 替代了 ROS1 的有限状态机</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>Recovery Behavior</strong> — 导航失败时的恢复策略：旋转、后退、清除代价地图 <em>→ 实际部署中非常关键</em></li>
+      </ul>
+      <div class="why-box border-planning">
+        <strong>这一层解决什么问题：</strong>建好地图后，"怎么从当前位姿走到目标点"需要回答三个问题——全局路径怎么走（规划）、遇到新障碍怎么办（局部避障）、卡住了怎么办（恢复行为）。Nav2 是 ROS2 社区的标准答案。
+      </div>
+      <div class="resource-box">
+        <a href="https://navigation.ros.org/" target="_blank">Nav2 官方文档</a>
+        <a href="http://nav2.fishros.com/" target="_blank">鱼香ROS Nav2 中文站</a>
+        <a href="https://github.com/ROBOTIS-GIT/turtlebot3" target="_blank">TurtleBot3 — 跑通 Nav2 的最佳教学平台</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Layer 6: Motion Control ==================== -->
+<div class="layer-group">
+  <div class="layer-label">第六层 · 运动控制 <span class="line"></span></div>
+
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag bg-control">控制层</span>
+      <span class="title">从路径到四足运动 — SDK 的高层控制接口</span>
+      <span class="subtitle">最后 1 米：让狗走起来</span>
+    </div>
+    <div class="module-body">
+      <h4>Nav2 输出 → SDK 输入的桥梁</h4>
+      <div class="relation">  Nav2 输出:  cmd_vel (线速度 vx, 角速度 wz)
+       │
+       ▼
+  ┌─────────────────────────────────────┐
+  │          速度指令转换层              │
+  │  Nav2 cmd_vel → SDK velocity_sequence│
+  │                                     │
+  │  关键问题：                          │
+  │  · Nav2 默认假设差速驱动机器人      │
+  │  · 四足的步态 != 轮式运动            │
+  │  · 需要理解 SDK 状态机流转           │
+  └─────────────────────────────────────┘
+       │
+       ▼
+  SDK 高层 API (gRPC):
+    RobotClient.state_switch(PASSIVE → STAND → WALK)
+    RobotClient.velocity_sequence(vx, vy, wz)</div>
+      <ul class="concept-list">
+        <li><span class="bullet">&#9656;</span> <strong>SDK 状态机</strong> — PASSIVE → STAND → WALK，必须按规则切换 <em>→ e3_auto_state_switch.py 展示了完整流程</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>速度序列控制</strong> — 给定 vx/vy/wz 驱动行走 <em>→ e4_velocity_sequence.py</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>路径跟踪控制器</strong> — 把全局路径点序列转换为实时速度指令 <em>→ Pure Pursuit（几何跟踪）或 MPC（优化控制）</em></li>
+        <li><span class="bullet">&#9656;</span> <strong>步态适配</strong> — 四足不像轮子，转向有惯性、停止有延迟 <em>→ 可能需要调参和平滑处理</em></li>
+      </ul>
+      <div class="why-box border-control">
+        <strong>这一层解决什么问题：</strong>Nav2 给出"应该以什么速度走"，SDK 提供了"让四足按速度走"的接口。中间的适配——状态切换、速度平滑、步态约束——是你最终要写的核心代码。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Full Stack Diagram ==================== -->
+<div class="layer-group">
+  <div class="layer-label">全栈纵览 <span class="line"></span></div>
+  <div class="module" onclick="toggle(this)">
+    <div class="module-header">
+      <span class="arrow">&#9654;</span>
+      <span class="tag" style="background:#30363d;color:#f0f6fc">总览</span>
+      <span class="title">从你写的代码到四足动起来 — 完整数据流</span>
+    </div>
+    <div class="module-body">
+      <div class="relation">  你写的导航应用
+  ┌───────────────────────────────────────────────────────────────────┐
+  │  "巡航到 A 点" → Nav2 全局规划 → 局部规划 → 输出 cmd_vel        │
+  │       ↑                                ↓                         │
+  │  SLAM 定位位姿                   速度指令转换                     │
+  │       ↑                                ↓                         │
+  │  ┌─────────┐                    RobotClient                       │
+  │  │ 传感器  │                     .velocity()                      │
+  │  │ 融合    │                        ↓                             │
+  │  └────┬────┘               gRPC → 机器人主控                      │
+  └───────┼──────────────────────────────────────────────────────────┘
+          │
+  SDK 底层 DDS 传感器流                    SDK 高层 gRPC 指令
+  ┌───────┴────────┐               ┌──────────────────────────────┐
+  │ Cyclone DDS    │               │ gRPC + Protobuf              │
+  │ Topic: /rgb    │               │ RobotClient Stub             │
+  │ Topic: /depth  │               │ 127.168.5.2:50051           │
+  │ Topic: /imu    │               └──────────────────────────────┘
+  └────────────────┘
+          │                                    │
+  ┌───────┴────────────────────────────────────┴──────────────────┐
+  │                   Dobot 四足机器人硬件                         │
+  │          RGB-D 相机 · IMU · 电机 · 主控板                     │
+  └───────────────────────────────────────────────────────────────┘</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  点击每个模块展开详情 · 建议自底向上阅读 · 理解每一层存在的理由比记住 API 更重要
+</div>
+
+<script>
+function toggle(el) {
+  el.classList.toggle('open');
+}
+</script>
+</body>
+</html>

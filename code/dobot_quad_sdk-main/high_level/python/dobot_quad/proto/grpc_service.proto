@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package grpc_comm;
+
+message Parameter {
+  string key = 1;
+  oneof value {
+    float float_value = 2;
+    int32 int_value = 3;
+    string string_value = 4;
+    bool bool_value = 5;
+  }
+}
+
+message Motion {
+  string motion_id = 1;
+  repeated Parameter parameters = 2;
+}
+
+message GetMotionsRequest { string fsm_state = 1; }
+
+message GetMotionsResponse {
+  repeated Motion motions = 1;
+  map<string, string> descriptions = 2;
+  bool success = 3;
+  string message = 4;
+}
+
+message MotionSequence {
+  string sequence_id = 1;
+  string sequence_name = 2;
+  float bpm = 3;
+  repeated Motion motions = 4;
+  bool loop = 5;
+}
+
+message ExecuteSequenceRequest {
+  MotionSequence sequence = 1;
+  bool immediate_start = 2;
+}
+
+message ExecuteSequenceResponse {
+  bool success = 1;
+  string message = 2;
+  string execution_id = 3;
+}
+
+message SequenceProgress {
+  int32 current_index = 1;
+  int32 total_motions = 2;
+  string current_motion_id = 3;
+  string current_state = 4;
+  bool is_final = 5;
+  bool success = 6;
+  string message = 7;
+  string execution_id = 8;
+}
+
+message RobotState {
+  repeated float jpos_leg = 1;
+  repeated float jpos_leg_des = 2;
+  repeated float jvel_leg = 3;
+  repeated float jtau_leg = 4;
+  repeated float jvel_leg_des = 5;
+  repeated float jtau_leg_des = 6;
+  reserved 7, 8, 9;
+  reserved "jpos_arm", "jvel_arm", "jtau_arm";
+  repeated float pos_body = 10;
+  repeated float vel_body = 11;
+  repeated float acc_body = 12;
+  repeated float omega_body = 13;
+  repeated float ori_body = 14;
+  repeated float grf_left = 15;
+  repeated float grf_right = 16;
+  repeated float grf_vertical_filtered = 17;
+  repeated float temp = 18;
+}
+
+message GetRobotStateRequest {}
+
+message GetRobotStateResponse {
+  bool success = 1;
+  string message = 2;
+  RobotState robot_state = 3;
+  string current_state = 4;
+  int32 current_speed_ratio = 5;
+  bool obstacle_avoidance_enabled = 6;
+  string robot_type = 7;
+}
+
+message SetSpeedRatioRequest {
+  int32 speed_ratio = 1; // [10-100], step 10; 0 = query only
+}
+
+message SetSpeedRatioResponse {
+  bool success = 1;
+  string message = 2;
+  int32 current_speed_ratio = 3;
+}
+
+message SetObstacleAvoidanceRequest { bool enable = 1; }
+
+message SetObstacleAvoidanceResponse {
+  bool success = 1;
+  string message = 2;
+  bool current_enabled = 3;
+}
+
+service gRPCService {
+  rpc GetAvailableMotions(GetMotionsRequest) returns (GetMotionsResponse);
+  rpc ExecuteSequence(ExecuteSequenceRequest) returns (stream SequenceProgress);
+  rpc GetRobotState(GetRobotStateRequest) returns (GetRobotStateResponse);
+  rpc SetSpeedRatio(SetSpeedRatioRequest) returns (SetSpeedRatioResponse);
+  rpc SetObstacleAvoidance(SetObstacleAvoidanceRequest)
+      returns (SetObstacleAvoidanceResponse);
+}

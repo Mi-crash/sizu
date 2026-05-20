@@ -1,0 +1,15 @@
+**/build/
+**/__pycache__/
+**/depth_images
+**/rgb_images
+
+**/grpc_service_pb2_grpc.py
+**/grpc_service_pb2.py
+
+**/.pytest_cache/
+
+**/.venv
+
+**/*.egg-info/
+
+**/.cache
