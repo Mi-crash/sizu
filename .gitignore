@@ -32,8 +32,10 @@ build/
 .vscode/
 .idea/
 
-# Claude
-.claude/
+# Claude (本地配置不入库，skills 共享)
+.claude/settings*.json
+.claude/worktrees/
+.claude/scheduled_tasks.json
 
 # 临时文件
 *.tmp
